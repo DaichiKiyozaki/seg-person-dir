@@ -2,7 +2,7 @@
 
 ## 背景
 
-- 歩行者のセグメンテーション+向き推定の画像認識が必要
+- （研究で）歩行者のセグメンテーション+向き推定の画像認識が必要
 - 現状の構成は以下
     - yolo-seg
         - 人の検出
@@ -35,7 +35,6 @@ seg-person-dir/
 │       ├── reports/        # CSVレポート
 │       └── data.yaml       # YOLO設定ファイル（ノートブックで生成）
 ├── runs/                  # Ultralytics学習出力
-└── notebooks/             # 予備（未使用）
 ```
 
 ## クラス定義
@@ -49,9 +48,7 @@ seg-person-dir/
 
 ### 1. 依存関係のインストール
 
-```powershell
-cd seg-person-dir
-.\venv\Scripts\Activate.ps1
+```bash
 python -m pip install -r requirement.txt
 ```
 
@@ -65,19 +62,16 @@ python -m pip install -r requirement.txt
 ### 学習
 
 **Ultralytics CLI:**
-```powershell
+```bash
 # 事前に scripts/01_make_dataset.ipynb を最後まで実行して
 # data/dataset_frontback_yoloseg/data.yaml を生成しておく
-cd seg-person-dir
-.\venv\Scripts\Activate.ps1
-
 yolo segment train data=data/dataset_frontback_yoloseg/data.yaml model=yolo26s-seg.pt imgsz=512 epochs=50 batch=12 project=runs/segment name=frontback
 ```
 
 ### 推論
 
 **画像/ディレクトリに対して:**
-```powershell
+```bash
 python scripts/predict.py `
     --weights runs/segment/train_local/weights/best.pt `
     --source data/dataset_frontback_yoloseg/images/val `
@@ -85,18 +79,18 @@ python scripts/predict.py `
 ```
 
 **Webカメラでリアルタイム:**
-```powershell
+```bash
 python scripts/predict.py --weights best.pt --source 0 --show
 ```
 
 **動画ファイル:**
-```powershell
+```bash
 python scripts/predict.py --weights best.pt --source video.mp4 --save --show
 ```
 
 ### ラベル可視化（デバッグ用）
 
-```powershell
+```bash
 python scripts/visualize_labels.py `
     --images data/dataset_frontback_yoloseg/images/val `
     --labels data/dataset_frontback_yoloseg/labels/val `
@@ -106,7 +100,7 @@ python scripts/visualize_labels.py `
 ## 参考
 
 - https://dev.classmethod.jp/articles/yolov8-instance-segmentation/
-- https://docs.ultralytics.com/ja/models/yolo11/
+- https://docs.ultralytics.com/ja/models/yolo26/
 
 ## 処理フロー概要
 
