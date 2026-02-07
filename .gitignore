@@ -1,0 +1,29 @@
+# モデルファイル
+*.pt
+*.pth
+
+# 画像ファイル
+*.jpg
+*.png
+*.jpeg
+
+# 動画ファイル
+*.mp4
+
+# ドキュメントやアーカイブ
+*.pdf
+*.zip
+
+# 仮想環境
+venv/
+
+# Pythonキャッシュ
+__pycache__/
+
+# MEBOW
+MEBOW/
+
+# data, test
+data/
+test/
+runs/

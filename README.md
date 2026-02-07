@@ -1,0 +1,119 @@
+# seg-person-dir - 同方向/逆方向 歩行者セグメンテーション
+
+## 背景
+
+- 歩行者のセグメンテーション+向き推定の画像認識が必要
+- 現状の構成は以下
+    - yolo-seg
+        - 人の検出
+    - [MEBOW](https://github.com/ChenyanWu/MEBOW)
+        - 向きの推定
+        - （このモデルは人の角度を出力するが、今回の要件では同方向かそうでないかの判定だけで良い）
+- 現在の構成は２モデル構成で、MEBOWは歩行者一人一人に対して推論するので重い
+- ⇛YOLOをファインチューニングして人検出＋向き推定させる様にしたい！
+
+## ディレクトリ構成
+
+```
+seg-person-dir/
+├── README.md               # このファイル
+├── scripts/
+│   ├── predict.py          # 推論スクリプト
+│   ├── visualize_labels.py # ラベル可視化スクリプト
+│   └── 01_make_dataset.ipynb  # データセット生成ノートブック
+├── data/
+│   ├── raw/               # COCO抽出画像（ゲート通過のみ）
+│   └── dataset_frontback_yoloseg/
+│       ├── images/        # 学習用画像
+│       │   ├── train/
+│       │   ├── val/
+│       │   └── test/
+│       ├── labels/        # YOLO-Segラベル
+│       │   ├── train/
+│       │   ├── val/
+│       │   └── test/
+│       ├── reports/        # CSVレポート
+│       └── data.yaml       # YOLO設定ファイル（ノートブックで生成）
+├── runs/                  # Ultralytics学習出力
+└── notebooks/             # 予備（未使用）
+```
+
+## クラス定義
+
+| Class ID | Name | 説明 |
+|----------|------|------|
+| 0 | same-dir-person | 同方向歩行者（カメラと同じ方向を向いている、角度 ≤45° または ≥315°）|
+| 1 | ops-dir-person | 逆方向歩行者（カメラと逆方向を向いている）|
+
+## セットアップ
+
+### 1. 依存関係のインストール
+
+```powershell
+cd seg-person-dir
+.\venv\Scripts\Activate.ps1
+python -m pip install -r requirement.txt
+```
+
+### 2. データセット準備
+
+1. COCOアノテーションをダウンロード
+2. `scripts/01_make_dataset.ipynb` を実行してデータセットを生成
+
+## 使用方法
+
+### 学習
+
+**Ultralytics CLI:**
+```powershell
+# 事前に scripts/01_make_dataset.ipynb を最後まで実行して
+# data/dataset_frontback_yoloseg/data.yaml を生成しておく
+cd seg-person-dir
+.\venv\Scripts\Activate.ps1
+
+yolo segment train data=data/dataset_frontback_yoloseg/data.yaml model=yolo26s-seg.pt imgsz=512 epochs=50 batch=12 project=runs/segment name=frontback
+```
+
+### 推論
+
+**画像/ディレクトリに対して:**
+```powershell
+python scripts/predict.py `
+    --weights runs/segment/train_local/weights/best.pt `
+    --source data/dataset_frontback_yoloseg/images/val `
+    --save --out pred_out
+```
+
+**Webカメラでリアルタイム:**
+```powershell
+python scripts/predict.py --weights best.pt --source 0 --show
+```
+
+**動画ファイル:**
+```powershell
+python scripts/predict.py --weights best.pt --source video.mp4 --save --show
+```
+
+### ラベル可視化（デバッグ用）
+
+```powershell
+python scripts/visualize_labels.py `
+    --images data/dataset_frontback_yoloseg/images/val `
+    --labels data/dataset_frontback_yoloseg/labels/val `
+    --out label_vis_out --max 100
+```
+
+## 参考
+
+- https://dev.classmethod.jp/articles/yolov8-instance-segmentation/
+- https://docs.ultralytics.com/ja/models/yolo11/
+
+## 処理フロー概要
+
+1. COCOアノテーションを読み込み
+2. **キーポイントゲートで画像IDをフィルタ**（画像はまだダウンロードしない）
+3. フィルタ通過IDのみダウンロード
+4. 歩行者seg（マスク）はCOCOのGTを使う
+5. 歩行者向き判別（MEBOW）で same/ops を付与
+6. YOLO-seg形式ラベル（ポリゴン）へ変換
+7. 学習（YOLO-Seg）
