@@ -2,15 +2,15 @@
 
 ## 背景
 
-- （研究で）歩行者のセグメンテーション+向き推定の画像認識が必要
-- 現状の構成は以下
+- 歩行者のセグメンテーション+向き推定の画像認識が必要だった
+- 初期の想定構成は以下
     - yolo-seg
         - 人の検出
     - [MEBOW](https://github.com/ChenyanWu/MEBOW)
         - 向きの推定
         - （このモデルは人の角度を出力するが、今回の要件では同方向かそうでないかの判定だけで良い）
-- 現在の構成は２モデル構成で、MEBOWは歩行者一人一人に対して推論するので重い
-- ⇛YOLOをファインチューニングして人検出＋向き推定させる様にしたい！
+- 上記の構成は2モデル構成で、MEBOWは歩行者一人一人に対して推論するため重い
+- → YOLOをファインチューニングして「人検出＋向き推定」を1モデルで実現したい
 
 ## ディレクトリ構成
 
@@ -20,7 +20,7 @@ seg-person-dir/
 ├── scripts/
 │   ├── predict.py          # 推論スクリプト
 │   ├── visualize_labels.py # ラベル可視化スクリプト
-│   └── 01_make_dataset.ipynb  # データセット生成ノートブック
+│   └── 01_make_dataset_frontback_yoloseg.ipynb  # データセット生成ノートブック
 ├── data/
 │   ├── raw/               # COCO抽出画像（ゲート通過のみ）
 │   └── dataset_frontback_yoloseg/
@@ -55,7 +55,7 @@ python -m pip install -r requirement.txt
 ### 2. データセット準備
 
 1. COCOアノテーションをダウンロード
-2. `scripts/01_make_dataset.ipynb` を実行してデータセットを生成
+2. `scripts/01_make_dataset_frontback_yoloseg.ipynb` を実行してデータセットを生成
 
 ## 使用方法
 
@@ -63,9 +63,11 @@ python -m pip install -r requirement.txt
 
 **Ultralytics CLI:**
 ```bash
-# 事前に scripts/01_make_dataset.ipynb を最後まで実行して
+# 事前に scripts/01_make_dataset_frontback_yoloseg.ipynb を最後まで実行して
 # data/dataset_frontback_yoloseg/data.yaml を生成しておく
-yolo segment train data=data/dataset_frontback_yoloseg/data.yaml model=yolo26s-seg.pt imgsz=512 epochs=50 batch=12 project=runs/segment name=frontback
+cd seg-person-dir
+
+yolo segment train data=data/dataset_frontback_yoloseg/data.yaml model=yolo26s-seg.pt imgsz=512 epochs=50 batch=12 project=./runs/segment name=frontback
 ```
 
 ### 推論
