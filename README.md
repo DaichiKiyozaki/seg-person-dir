@@ -1,15 +1,18 @@
-# seg-person-dir - 同方向/逆方向 歩行者セグメンテーション
+# seg-person-dir
+
+https://qiita.com/kiyokiyomin/items/0d6c524522faeebb336c
+
 
 ## 背景
 
-- 歩行者のセグメンテーション+向き推定の画像認識が必要だった
-- 初期の想定構成は以下
+- 研究要件として、歩行者のセグメンテーションと、向き推定（同方向/逆方向）が必要
+- 当初の構成は以下
     - yolo-seg
         - 人の検出
     - [MEBOW](https://github.com/ChenyanWu/MEBOW)
         - 向きの推定
-        - （このモデルは人の角度を出力するが、今回の要件では同方向かそうでないかの判定だけで良い）
-- 上記の構成は2モデル構成で、MEBOWは歩行者一人一人に対して推論するため重い
+        - （このモデルは5°単位で人の角度を出力するが、今回の要件では同方向か逆方向かの判定だけで良い）
+- しかし、上記の構成は、2モデル構成のうえ、MEBOWは歩行者一人一人に対して推論するため重い
 - → YOLOをファインチューニングして「人検出＋向き推定」を1モデルで実現したい
 
 ## ディレクトリ構成
@@ -17,6 +20,7 @@
 ```
 seg-person-dir/
 ├── README.md               # このファイル
+├── MEBOW/                  # 向き推定用（本リポジトリ直下にcloneする）
 ├── scripts/
 │   ├── predict.py          # 推論スクリプト
 │   ├── visualize_labels.py # ラベル可視化スクリプト
@@ -51,6 +55,23 @@ seg-person-dir/
 ```bash
 python -m pip install -r requirement.txt
 ```
+
+### 1.5 MEBOW の配置（必須）
+
+データセット生成ノートブックでは、歩行者の向き推定に MEBOW を使用します。
+そのため、MEBOW を **このリポジトリ直下**の `MEBOW/` に配置してください。
+
+また、推論に使用する重み `seg-person-dir/MEBOW/models/model_hboe.pth` は MEBOW リポジトリに同梱されていないため、
+クローン後に MEBOW の GitHub リポジトリで配布されている **Trained HBOE model** を別途ダウンロードして配置してください。
+
+```bash
+cd seg-person-dir
+git clone https://github.com/ChenyanWu/MEBOW.git
+```
+
+配置先（期待パス）:
+
+- `seg-person-dir/MEBOW/models/model_hboe.pth`
 
 ### 2. データセット準備
 
@@ -98,11 +119,6 @@ python scripts/visualize_labels.py `
     --labels data/dataset_frontback_yoloseg/labels/val `
     --out label_vis_out --max 100
 ```
-
-## 参考
-
-- https://dev.classmethod.jp/articles/yolov8-instance-segmentation/
-- https://docs.ultralytics.com/ja/models/yolo26/
 
 ## 処理フロー概要
 
